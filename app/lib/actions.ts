@@ -17,6 +17,8 @@ const FormSchema = z.object({
 });
 
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
+const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+
 
 export async function createInvoice(formData: FormData) {
     // Validate form using Zod
@@ -40,4 +42,35 @@ export async function createInvoice(formData: FormData) {
     revalidatePath('/dashboard/invoices');
     // 重定向到 /dashboard/invoices 页面
     redirect('/dashboard/invoices');
+}
+
+export async function updateInvoice(id: string, formData: FormData) {
+    // Validate form using Zod
+    const {customerId, amount, status} = UpdateInvoice.parse({
+        id: formData.get('id'),
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        status: formData.get('status'),
+    });
+
+    const amountInCents = amount * 100;
+
+    // console.log({customerId, amountInCents, status, date})
+
+    await sql`
+    UPDATE invoices
+    SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+    WHERE id = ${id}
+    `;
+
+    // 清除此缓存并向服务器发出新的请求，以获取更新的数据
+    revalidatePath('/dashboard/invoices');
+    // 重定向到 /dashboard/invoices 页面
+    redirect('/dashboard/invoices');
+}
+
+export async function deleteInvoice(id: string) {
+  await sql`DELETE FROM invoices WHERE id = ${id}`;
+  
+  revalidatePath('/dashboard/invoices');
 }
